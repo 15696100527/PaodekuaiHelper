@@ -2,14 +2,13 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -23,20 +22,39 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
-    - name: Build with Gradle
-      uses: gradle/actions/setup-gradle@v3
-      with:
-        gradle-version: "8.5"
+    - name: Accept Android licenses
+      run: yes | sdkmanager --licenses > /dev/null 2>&1 || true
 
-    - name: Grant execute permission for gradlew
+    - name: Install required Android SDK components
+      run: |
+        sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
+    - name: Download official Gradle
+      run: |
+        curl -sL https://services.gradle.org/distributions/gradle-8.5-bin.zip -o /tmp/gradle.zip
+        unzip -q /tmp/gradle.zip -d /tmp/
+        echo "/tmp/gradle-8.5/bin" >> $GITHUB_PATH
+
+    - name: Generate Gradle Wrapper
+      run: |
+        cd $GITHUB_WORKSPACE
+        gradle wrapper --gradle-version 8.5
+
+    - name: Make gradlew executable
       run: chmod +x gradlew
 
-    - name: Build Debug APK
-      run: ./gradlew assembleDebug --no-daemon --stacktrace --warning-mode all
+    - name: Build Debug APK with Gradle
+      run: ./gradlew assembleDebug --stacktrace
 
-    - name: Upload APK Artifact
+    - name: Check if APK exists
+      run: |
+        ls -la app/build/outputs/apk/debug/ 2>/dev/null && echo "APK found!" || echo "APK not found"
+        find . -name "*.apk" 2>/dev/null
+
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       if: success()
       with:
         name: paodekuai-helper-apk
-        path: app/build/outputs/apk/debug/*.apk
+        path: app/build/outputs/apk/debug/app-debug.apk
+        retention-days: 30
