@@ -10,7 +10,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="🃏 跑的快 辅助工具"
+        android:text="跑的快 辅助工具"
         android:textSize="22sp"
         android:textStyle="bold"
         android:textColor="#1A1A2E"
@@ -29,30 +29,24 @@
         android:id="@+id/btn_start"
         android:layout_width="260dp"
         android:layout_height="56dp"
-        android:text="▶ 启动辅助服务"
+        android:text="启动辅助服务"
         android:textSize="18sp"
-        android:background="#3366FF"
-        android:textColor="#FFFFFF"
         android:layout_marginBottom="16dp"/>
 
     <Button
         android:id="@+id/btn_stop"
         android:layout_width="260dp"
         android:layout_height="48dp"
-        android:text="■ 停止服务"
+        android:text="停止服务"
         android:textSize="16sp"
-        android:background="#FF4444"
-        android:textColor="#FFFFFF"
         android:layout_marginBottom="16dp"/>
 
     <Button
         android:id="@+id/btn_test"
         android:layout_width="260dp"
         android:layout_height="48dp"
-        android:text="🧪 测试算牌逻辑"
+        android:text="测试算牌逻辑"
         android:textSize="16sp"
-        android:background="#33AA66"
-        android:textColor="#FFFFFF"
         android:layout_marginBottom="32dp"/>
 
     <TextView
