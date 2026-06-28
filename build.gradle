@@ -1,4 +1,4 @@
-// 项目级 build.gradle (Groovy DSL，兼容性好)
+// 项目级 build.gradle
 buildscript {
     ext.kotlin_version = '1.9.22'
     repositories {
@@ -16,4 +16,8 @@ allprojects {
         google()
         mavenCentral()
     }
+}
+
+tasks.register('clean', Delete) {
+    delete rootProject.buildDir
 }
