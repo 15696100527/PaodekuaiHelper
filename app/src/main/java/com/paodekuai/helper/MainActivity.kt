@@ -48,6 +48,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         updateStatus(tvStatus)
+        
+        // 检查是否刚刚从权限申请页面返回
+        if (checkAllPermissions()) {
+            Toast.makeText(this, "权限已授予，可以启动辅助服务", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun checkAllPermissions(): Boolean {
@@ -70,16 +75,37 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startFloatingService() {
-        val intent = Intent(this, FloatingWindowService::class.java)
-        startForegroundService(intent)
-        Toast.makeText(this, "辅助服务已启动，返回游戏即可", Toast.LENGTH_LONG).show()
-        updateStatus(findViewById(R.id.tv_status))
+        try {
+            val intent = Intent(this, FloatingWindowService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+            Toast.makeText(this, "辅助服务已启动，返回游戏即可", Toast.LENGTH_LONG).show()
+            updateStatus(findViewById(R.id.tv_status))
+        } catch (e: Exception) {
+            Toast.makeText(this, "启动失败: ${e.message}", Toast.LENGTH_LONG).show()
+            e.printStackTrace()
+        }
     }
 
     private fun updateStatus(tv: TextView) {
         val overlay = if (Settings.canDrawOverlays(this)) "✅" else "❌"
         tv.text = "悬浮窗权限: $overlay\n服务状态: 点击启动"
         tv.textSize = 14f
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == OVERLAY_PERMISSION_REQ) {
+            if (Settings.canDrawOverlays(this)) {
+                Toast.makeText(this, "权限已授予，正在启动服务...", Toast.LENGTH_SHORT).show()
+                startFloatingService()
+            } else {
+                Toast.makeText(this, "需要悬浮窗权限才能使用辅助功能", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     private fun testGameEngine() {
