@@ -35,9 +35,18 @@ class FloatingWindowService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        createNotificationChannel()
-        startForeground(NOTIFICATION_ID, createNotification())
-        createFloatingWindow()
+        try {
+            android.util.Log.d("FloatingWindowService", "Service onCreate started")
+            createNotificationChannel()
+            startForeground(NOTIFICATION_ID, createNotification())
+            android.util.Log.d("FloatingWindowService", "Foreground service started")
+            createFloatingWindow()
+            android.util.Log.d("FloatingWindowService", "Floating window created")
+        } catch (e: Exception) {
+            android.util.Log.e("FloatingWindowService", "Error in onCreate: ${e.message}")
+            e.printStackTrace()
+            stopSelf()
+        }
     }
 
     private fun createNotificationChannel() {
@@ -67,30 +76,37 @@ class FloatingWindowService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun createFloatingWindow() {
-        windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-        floatingView = LayoutInflater.from(this).inflate(R.layout.floating_window, null)
+        try {
+            windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+            floatingView = LayoutInflater.from(this).inflate(R.layout.floating_window, null)
 
-        val layoutType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        } else {
-            WindowManager.LayoutParams.TYPE_PHONE
+            val layoutType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            } else {
+                WindowManager.LayoutParams.TYPE_PHONE
+            }
+
+            params = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                layoutType,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                        WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                PixelFormat.TRANSLUCENT
+            )
+
+            params.gravity = Gravity.TOP or Gravity.END
+            params.x = 20
+            params.y = 100
+
+            windowManager.addView(floatingView, params)
+            android.util.Log.d("FloatingWindowService", "Floating view added to window manager")
+            initFloatingView()
+        } catch (e: Exception) {
+            android.util.Log.e("FloatingWindowService", "Error creating floating window: ${e.message}")
+            e.printStackTrace()
+            throw e
         }
-
-        params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            layoutType,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-            PixelFormat.TRANSLUCENT
-        )
-
-        params.gravity = Gravity.TOP or Gravity.END
-        params.x = 20
-        params.y = 100
-
-        windowManager.addView(floatingView, params)
-        initFloatingView()
     }
 
     private fun initFloatingView() {
