@@ -1,4 +1,4 @@
-// 项目级 build.gradle
+// Root build.gradle
 buildscript {
     ext.kotlin_version = '1.9.22'
     repositories {
@@ -18,6 +18,6 @@ allprojects {
     }
 }
 
-tasks.register('clean', Delete) {
+task clean(type: Delete) {
     delete rootProject.buildDir
 }
