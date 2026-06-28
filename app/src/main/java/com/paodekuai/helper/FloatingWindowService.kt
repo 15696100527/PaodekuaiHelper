@@ -1,16 +1,22 @@
 // 悬浮窗服务 - 在游戏界面上显示辅助信息
 package com.paodekuai.helper
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.graphics.PixelFormat
-import android.graphics.Point
 import android.os.Build
 import android.os.IBinder
-import android.provider.Settings
 import android.view.*
-import android.widget.*
+import android.widget.Button
+import android.widget.ImageButton
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.cardview.widget.CardView
+import androidx.core.app.NotificationCompat
 
 class FloatingWindowService : Service() {
 
@@ -21,23 +27,49 @@ class FloatingWindowService : Service() {
     private lateinit var btnRefresh: Button
     private lateinit var btnClose: ImageButton
 
-    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
-    private var isRunning = false
-
-    override fun onBind(intent: Intent?): IBinder? = null
+    companion object {
+        const val CHANNEL_ID = "paodekuai_helper_channel"
+        const val NOTIFICATION_ID = 1001
+        const val CHANNEL_NAME = "跑的快辅助服务"
+    }
 
     override fun onCreate() {
         super.onCreate()
+        createNotificationChannel()
+        startForeground(NOTIFICATION_ID, createNotification())
         createFloatingWindow()
     }
 
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_MIN)
+            channel.description = "跑的快辅助悬浮窗服务"
+            channel.setShowBadge(false)
+            val manager = getSystemService(NotificationManager::class.java)
+            manager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun createNotification(): Notification {
+        val intent = Intent(this, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(this, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("跑的快辅助")
+            .setContentText("辅助服务运行中，返回游戏查看悬浮窗")
+            .setSmallIcon(android.R.drawable.ic_menu_info_details)
+            .setContentIntent(pendingIntent)
+            .setOngoing(true)
+            .build()
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
     private fun createFloatingWindow() {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-
-        // 加载悬浮窗布局
         floatingView = LayoutInflater.from(this).inflate(R.layout.floating_window, null)
 
-        // 设置 LayoutParams
         val layoutType = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         } else {
@@ -53,13 +85,11 @@ class FloatingWindowService : Service() {
             PixelFormat.TRANSLUCENT
         )
 
-        // 初始位置：右上角
         params.gravity = Gravity.TOP or Gravity.END
         params.x = 20
         params.y = 100
 
         windowManager.addView(floatingView, params)
-
         initFloatingView()
     }
 
@@ -69,17 +99,10 @@ class FloatingWindowService : Service() {
         btnClose = floatingView.findViewById(R.id.btn_close)
         val btnMinimize = floatingView.findViewById<Button>(R.id.btn_minimize)
 
-        // 关闭按钮
-        btnClose.setOnClickListener {
-            stopSelf()
-        }
+        btnClose.setOnClickListener { stopSelf() }
 
-        // 刷新按钮：触发分析
-        btnRefresh.setOnClickListener {
-            analyzeCurrentScreen()
-        }
+        btnRefresh.setOnClickListener { analyzeCurrentScreen() }
 
-        // 最小化按钮
         btnMinimize.setOnClickListener {
             val cardBody = floatingView.findViewById<CardView>(R.id.card_body)
             if (cardBody.visibility == View.VISIBLE) {
@@ -91,18 +114,16 @@ class FloatingWindowService : Service() {
             }
         }
 
-        // 拖动功能
         val dragArea = floatingView.findViewById<LinearLayout>(R.id.layout_drag)
         dragArea.setOnTouchListener(DragTouchListener())
 
-        // 初始提示
-        tvResult.text = "👋 跑的快辅助已启动\n\n点击「分析」开始\n或手动输入手牌测试"
+        tvResult.text = "跑的快辅助已启动\n\n点击「分析」开始\n或手动输入手牌测试"
     }
 
     private fun analyzeCurrentScreen() {
-        tvResult.text = "🔍 正在分析...\n（当前为测试版，请手动输入手牌）"
+        tvResult.text = "正在分析...\n（当前为测试版，请手动输入手牌）"
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
         handler.postDelayed({
-            // 测试：模拟分析
             val testHand = listOf(
                 Card("spade", 3), Card("spade", 4), Card("spade", 5),
                 Card("heart", 6), Card("club", 7), Card("diamond", 8),
@@ -142,9 +163,8 @@ class FloatingWindowService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        if (::floatingView.isInitialized) {
+        if (::floatingView.isInitialized && floatingView.isAttachedToWindow) {
             windowManager.removeView(floatingView)
         }
-        isRunning = false
     }
 }
